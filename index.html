@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>COHR Lab — Coherent Corp</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap">
+<script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<style>
+:root{
+  --bg:#EEF1F6; --white:#FFFFFF; --panel:#F7F9FB;
+  --border:#DDE3EC; --border2:#B8C2D0;
+  --tx:#0D1117; --tx2:#3D4756; --tx3:#7A8494; --tx4:#A8B4C0;
+  --cohr:#1A56DB; --cohr2:#EBF0FD;
+  --r0:#E8420A; --r1:#0EA5E9; --r2:#A855F7; --r3:#F59E0B; --r4:#10B981; --r5:#06B6D4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{color:var(--tx);font-family:'DM Sans',sans-serif;font-size:14px}
+
+/* HDR */
+.hdr{position:fixed;top:0;left:0;right:0;height:52px;z-index:200;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(16px);
+  border-bottom:1.5px solid var(--border);
+  display:flex;align-items:center;padding:0 18px;gap:14px;
+  box-shadow:0 1px 10px rgba(0,0,0,.07)}
+.logo-pill{background:var(--cohr);color:#fff;font-family:'DM Mono',monospace;
+  font-size:11px;font-weight:500;padding:4px 10px;border-radius:6px;
+  letter-spacing:.06em;box-shadow:0 2px 8px rgba(26,86,219,.3)}
+.logo-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--tx);letter-spacing:-.01em}
+.logo-sub{font-family:'DM Mono',monospace;font-size:9px;color:var(--tx4);letter-spacing:.05em}
+.hsep{width:1px;height:20px;background:var(--border);flex-shrink:0}
+.hcrumb{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--tx3)}
+.hcrumb b{color:var(--tx2);font-weight:500}
+.hr{margin-left:auto;display:flex;align-items:center;gap:9px}
+.hbtn{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;
+  letter-spacing:.08em;text-transform:uppercase;padding:6px 13px;border-radius:6px;
+  cursor:pointer;border:1.5px solid var(--border);background:var(--panel);
+  color:var(--tx3);transition:all .18s}
+.hbtn:hover{background:#fff;border-color:var(--border2);color:var(--tx2)}
+.hbtn.on{background:var(--cohr2);border-color:rgba(26,86,219,.4);color:var(--cohr)}
+.waddr{font-family:'DM Mono',monospace;font-size:10px;color:var(--tx4);
+  background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:4px 10px}
+.cbtn{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.08em;
+  text-transform:uppercase;padding:6px 16px;border-radius:6px;cursor:pointer;border:none;
+  background:var(--cohr);color:#fff;box-shadow:0 2px 8px rgba(26,86,219,.3);transition:all .18s}
+.cbtn:hover{background:#1447C0;box-shadow:0 4px 14px rgba(26,86,219,.4)}
+.cbtn.on{background:#059669;box-shadow:0 2px 8px rgba(5,150,105,.3)}
+
+/* CANVAS — always full viewport minus header/bar, left offset via JS */
+#cv{position:fixed;top:52px;bottom:60px;display:block}
+
+/* BAR */
+.bar{position:fixed;bottom:0;left:0;right:0;height:60px;z-index:200;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(16px);
+  border-top:1.5px solid var(--border);
+  display:flex;align-items:center;padding:0 18px;gap:11px;
+  box-shadow:0 -1px 8px rgba(0,0,0,.05)}
+.blbl{font-family:'DM Mono',monospace;font-size:9px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--tx4);white-space:nowrap}
+.binput{font-family:'DM Mono',monospace;font-size:12px;padding:7px 11px;
+  border-radius:6px;border:1.5px solid var(--border);
+  background:var(--panel);color:var(--tx);width:150px;outline:none;transition:all .18s}
+.binput:focus{border-color:var(--cohr);background:#fff;box-shadow:0 0 0 3px rgba(26,86,219,.08)}
+.binput::placeholder{color:var(--tx4)}
+.bbtn{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.07em;
+  text-transform:uppercase;padding:7px 15px;border-radius:6px;border:none;cursor:pointer;transition:all .18s;white-space:nowrap}
+.bbtn.cr{background:var(--cohr);color:#fff;box-shadow:0 2px 8px rgba(26,86,219,.25)}
+.bbtn.cr:hover{background:#1447C0}
+.bbtn.adv{background:#fff;color:var(--tx2);border:1.5px solid var(--border)}
+.bbtn.adv:hover{background:var(--panel);border-color:var(--border2)}
+.bbtn.play{background:#059669;color:#fff;box-shadow:0 2px 8px rgba(5,150,105,.22)}
+.bbtn.stop{background:#DC2626;color:#fff}
+.bsep{width:1px;height:28px;background:var(--border);flex-shrink:0}
+.chips{display:flex;gap:7px;overflow-x:auto;flex:1;align-items:center}
+.chips::-webkit-scrollbar{height:0}
+.chip{display:flex;align-items:center;gap:6px;background:var(--panel);
+  border:1.5px solid var(--border);border-radius:20px;padding:4px 11px;
+  cursor:pointer;transition:all .15s;flex-shrink:0}
+.chip:hover{background:#fff;border-color:var(--border2)}
+.chip.sel{border-color:var(--cohr);background:var(--cohr2)}
+.chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.chip-name{font-family:'DM Mono',monospace;font-size:10.5px;font-weight:500;color:var(--tx2)}
+.chip-step{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--tx4)}
+
+/* TOOLTIPS */
+.tip{position:fixed;z-index:400;pointer-events:none;background:rgba(13,17,23,.93);
+  backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1);border-radius:9px;
+  padding:10px 13px;font-size:12px;line-height:1.55;
+  box-shadow:0 8px 28px rgba(0,0,0,.22);display:none;max-width:225px}
+.tip.show{display:block}
+.tip-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff;margin-bottom:3px}
+.tip-desc{color:rgba(255,255,255,.6);font-size:11px;line-height:1.5}
+.tip-hint{font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.28);margin-top:5px}
+.wt-role{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;
+  text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:3px}
+.wt-act{font-size:12px;font-weight:500;color:rgba(255,255,255,.9)}
+
+/* RIGHT SIDEBAR */
+#sb{position:fixed;top:52px;right:0;bottom:60px;width:0;overflow:hidden;
+  transition:width .28s cubic-bezier(.4,0,.2,1);z-index:150}
+#sb.open{width:296px}
+.sbi{width:296px;height:100%;overflow-y:auto;
+  background:rgba(255,255,255,.97);backdrop-filter:blur(16px);
+  border-left:1.5px solid var(--border);
+  box-shadow:-4px 0 20px rgba(0,0,0,.07)}
+.sbi::-webkit-scrollbar{width:3px}
+.sbi::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.sbhdr{padding:16px 16px 13px;border-bottom:1px solid #EEF1F6;
+  position:sticky;top:0;background:rgba(255,255,255,.97);z-index:10}
+.sbtag{font-family:'DM Mono',monospace;font-size:9px;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;padding:2px 8px;border-radius:4px;
+  display:inline-block;margin-bottom:7px;border:1px solid currentColor}
+.sbname{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:2px}
+.sbsub{font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);line-height:1.4}
+.sbx{position:absolute;top:14px;right:13px;width:25px;height:25px;border-radius:5px;
+  background:var(--panel);border:1px solid var(--border);cursor:pointer;
+  font-size:12px;display:flex;align-items:center;justify-content:center;
+  color:var(--tx3);transition:all .15s}
+.sbx:hover{background:var(--border);color:var(--tx)}
+.sbsec{padding:13px 16px;border-bottom:1px solid #F0F3F7}
+.sbsec:last-child{border-bottom:none;padding-bottom:24px}
+.sblbl{font-family:'DM Mono',monospace;font-size:9px;font-weight:500;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--tx4);margin-bottom:8px}
+.sbpl{font-size:13px;line-height:1.65;color:var(--tx2)}
+.sbsc{font-size:12.5px;line-height:1.7;color:var(--tx2)}
+.gl{border-bottom:1.5px dotted currentColor;cursor:help;position:relative;font-weight:500}
+.glt{display:none;position:fixed;z-index:500;width:252px;
+  background:rgba(13,17,23,.95);backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,.1);border-radius:8px;
+  padding:11px 13px;font-size:12px;line-height:1.6;
+  color:rgba(255,255,255,.8);box-shadow:0 8px 28px rgba(0,0,0,.3);
+  pointer-events:none;font-weight:400;font-style:normal}
+.glt::after{content:'';position:absolute;top:100%;left:18px;
+  border:5px solid transparent;border-top-color:rgba(255,255,255,.15)}
+.gl:hover .glt{display:block}
+.stg{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.sti{background:var(--panel);border:1px solid #EEF1F6;border-radius:5px;padding:8px 10px}
+.stk{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--tx4);margin-bottom:2px}
+.stv{font-family:'DM Mono',monospace;font-size:12.5px;font-weight:500;color:var(--tx)}
+.ff{background:var(--panel);border-left:2.5px solid currentColor;
+  padding:10px 12px;border-radius:0 6px 6px 0;font-size:12.5px;line-height:1.6;color:var(--tx2)}
+.ff strong{color:var(--tx);font-weight:600}
+.wrow{display:flex;align-items:center;gap:9px;padding:6px 0;
+  border-bottom:1px solid #F0F3F7}
+.wrow:last-child{border-bottom:none}
+.wdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.wname{font-size:12px;font-weight:600;color:var(--tx)}
+.wact{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--tx3);margin-top:1px}
+
+/* LEFT FUNCTIONS PANEL */
+#fnp{position:fixed;top:52px;left:0;bottom:60px;width:0;overflow:hidden;
+  transition:width .28s cubic-bezier(.4,0,.2,1);z-index:150}
+#fnp.open{width:330px}
+.fninner{width:330px;height:100%;overflow-y:auto;
+  background:rgba(255,255,255,.97);backdrop-filter:blur(16px);
+  border-right:1.5px solid var(--border);
+  box-shadow:4px 0 20px rgba(0,0,0,.07)}
+.fninner::-webkit-scrollbar{width:3px}
+.fninner::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.fnhdr{padding:16px 16px 12px;border-bottom:1px solid #EEF1F6;
+  position:sticky;top:0;background:rgba(255,255,255,.97);z-index:10;
+  display:flex;align-items:center}
+.fnhdr-t{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--tx)}
+.fnhdr-s{font-family:'DM Mono',monospace;font-size:9px;color:var(--tx4);margin-top:2px}
+.fnx{margin-left:auto;width:25px;height:25px;border-radius:5px;
+  background:var(--panel);border:1px solid var(--border);cursor:pointer;
+  font-size:12px;display:flex;align-items:center;justify-content:center;
+  color:var(--tx3);transition:all .15s}
+.fnx:hover{background:var(--border);color:var(--tx)}
+.fnsec{padding:13px 16px;border-bottom:1px solid #F0F3F7}
+.fnsec:last-child{border-bottom:none;padding-bottom:28px}
+.fnseclbl{font-family:'DM Mono',monospace;font-size:9px;font-weight:500;
+  letter-spacing:.18em;text-transform:uppercase;margin-bottom:9px;
+  display:flex;align-items:center;gap:7px}
+.badge{font-size:8px;padding:2px 7px;border-radius:8px;font-weight:500}
+.bw{background:rgba(239,68,68,.1);color:#DC2626;border:1px solid rgba(239,68,68,.2)}
+.br{background:rgba(16,185,129,.1);color:#059669;border:1px solid rgba(16,185,129,.2)}
+.fncard{background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:13px;margin-bottom:8px;transition:border-color .18s}
+.fncard:hover{border-color:var(--border2)}
+.fncard:last-child{margin-bottom:0}
+.fncard-name{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;
+  color:var(--cohr);margin-bottom:3px}
+.fncard-desc{font-size:11px;color:var(--tx4);margin-bottom:9px;line-height:1.5}
+.fnf{margin-bottom:7px}
+.fnflbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tx4);margin-bottom:3px}
+.fninput{width:100%;font-family:'DM Mono',monospace;font-size:11px;
+  padding:7px 9px;border-radius:5px;border:1.5px solid var(--border);
+  background:#fff;color:var(--tx);outline:none;transition:all .18s}
+.fninput:focus{border-color:var(--cohr);box-shadow:0 0 0 2px rgba(26,86,219,.08)}
+.fninput::placeholder{color:var(--tx4)}
+.fnsel{width:100%;font-family:'DM Mono',monospace;font-size:11px;
+  padding:7px 9px;border-radius:5px;border:1.5px solid var(--border);
+  background:#fff;color:var(--tx);outline:none;cursor:pointer}
+.fnbtn{width:100%;font-family:'DM Mono',monospace;font-size:10px;font-weight:500;
+  letter-spacing:.08em;text-transform:uppercase;padding:8px;border-radius:5px;
+  border:none;cursor:pointer;transition:all .18s;margin-top:3px}
+.fnbtn.exec{background:var(--cohr);color:#fff;box-shadow:0 2px 8px rgba(26,86,219,.22)}
+.fnbtn.exec:hover{background:#1447C0}
+.fnbtn.danger{background:rgba(220,38,38,.08);color:#DC2626;border:1px solid rgba(220,38,38,.2)}
+.fnbtn.danger:hover{background:rgba(220,38,38,.15)}
+.fnbtn.query{background:rgba(5,150,105,.08);color:#059669;border:1px solid rgba(5,150,105,.2)}
+.fnbtn.query:hover{background:rgba(5,150,105,.15)}
+.fnres{margin-top:8px;padding:8px 10px;background:#fff;
+  border:1px solid var(--border);border-radius:5px;
+  font-family:'DM Mono',monospace;font-size:10px;color:var(--tx2);
+  line-height:1.6;max-height:130px;overflow-y:auto;display:none}
+.fnres.show{display:block}
+.fnrr{display:flex;justify-content:space-between;gap:8px;padding:2px 0;
+  border-bottom:1px solid #EEF1F6}
+.fnrr:last-child{border-bottom:none}
+.fnrk{color:var(--tx4)}.fnrv{color:var(--tx2);text-align:right}
+
+/* TX OVERLAY */
+#txov{position:fixed;bottom:70px;right:20px;z-index:400;
+  background:#fff;border:1.5px solid var(--border);border-radius:10px;
+  padding:14px;width:235px;box-shadow:0 8px 28px rgba(0,0,0,.12);display:none}
+#txov.show{display:block}
+.txovt{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;
+  color:var(--tx);margin-bottom:10px}
+.txst{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:5px;
+  background:var(--panel);border:1px solid var(--border);
+  font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--tx4);transition:all .22s;margin-bottom:4px}
+.txst:last-child{margin-bottom:0}
+.txst.active{background:#FFFBEB;border-color:#D97706;color:#D97706}
+.txst.done{background:#ECFDF5;border-color:#059669;color:#059669}
+.txst.fail{background:#FEF2F2;border-color:#DC2626;color:#DC2626}
+.txdot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.1}}
+.txst.active .txdot{animation:blink .65s infinite}
+
+/* DASHBOARD */
+#dash{position:fixed;inset:0;z-index:300;
+  background:rgba(238,241,246,.96);backdrop-filter:blur(12px);
+  display:none;flex-direction:column;overflow-y:auto}
+#dash.show{display:flex}
+.dhdr{background:#fff;border-bottom:1.5px solid var(--border);
+  padding:18px 26px 14px;display:flex;align-items:center;gap:14px;flex-shrink:0;
+  box-shadow:0 1px 6px rgba(0,0,0,.05)}
+.dtitle{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--tx)}
+.dsub{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--tx4);margin-top:2px}
+.dclose{margin-left:auto;font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);
+  cursor:pointer;padding:6px 12px;border:1.5px solid var(--border);border-radius:6px;
+  background:transparent;transition:all .15s}
+.dclose:hover{background:var(--border);color:var(--tx)}
+.dbody{padding:20px 26px 48px;display:flex;flex-direction:column;gap:18px}
+.bcards{display:flex;flex-direction:column;gap:9px}
+.bcard{background:#fff;border:1.5px solid var(--border);border-radius:9px;
+  padding:15px 17px;box-shadow:0 2px 6px rgba(0,0,0,.04);transition:all .18s}
+.bcard:hover{box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.bctop{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.bcdot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.bcname{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--tx)}
+.bcid{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--tx4);
+  background:var(--panel);padding:2px 7px;border-radius:3px;border:1px solid var(--border)}
+.bcbadge{margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;font-weight:500;
+  padding:3px 9px;border-radius:8px;border:1px solid currentColor}
+.bcbadge.act{color:#059669;border-color:rgba(5,150,105,.3);background:rgba(5,150,105,.07)}
+.bcbadge.done{color:#D97706;border-color:rgba(217,119,6,.3);background:rgba(217,119,6,.07)}
+.bcbadge.abn{color:#DC2626;border-color:rgba(220,38,38,.3);background:rgba(220,38,38,.07)}
+.bcsteps{display:flex;align-items:center;margin-bottom:9px}
+.bcstep{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative}
+.bcstep:not(:last-child)::after{content:'';position:absolute;top:8px;left:55%;right:-45%;
+  height:1.5px;background:var(--border);z-index:0}
+.bcstep.done:not(:last-child)::after{background:currentColor;opacity:.45}
+.bcnode{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:7px;
+  position:relative;z-index:1;background:#fff;transition:all .3s;color:var(--tx4)}
+.bcstep.done .bcnode{background:currentColor;border-color:currentColor;color:#fff}
+.bcstep.cur .bcnode{border-color:currentColor;box-shadow:0 0 0 3px rgba(0,0,0,.06);color:currentColor}
+.bcstep-n{font-family:'DM Mono',monospace;font-size:7px;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--tx4);text-align:center;line-height:1.2}
+.bcstep.done .bcstep-n,.bcstep.cur .bcstep-n{color:var(--tx3)}
+.bcmeta{display:flex;gap:14px}
+.bcmi{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--tx4)}
+.bcmi b{color:var(--tx2);font-weight:500}
+.dfnl{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.dfc{background:#fff;border:1.5px solid var(--border);border-radius:8px;
+  padding:12px;position:relative;overflow:visible;transition:all .18s}
+.dfc:hover{box-shadow:0 4px 12px rgba(0,0,0,.08);border-color:var(--border2)}
+.dfctt{display:none;position:absolute;bottom:calc(100% + 7px);left:0;right:0;
+  background:rgba(13,17,23,.95);color:rgba(255,255,255,.82);border-radius:7px;
+  padding:10px 12px;font-size:11px;line-height:1.6;z-index:10;
+  box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.dfc:hover .dfctt{display:block}
+.dfcl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx4);margin-bottom:5px}
+.dfcv{font-family:'DM Mono',monospace;font-size:24px;font-weight:500;
+  color:var(--tx);line-height:1;margin-bottom:2px}
+.dfcu{font-size:10px;color:var(--tx4);font-family:'DM Mono',monospace}
+.dfcbar{height:2.5px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px}
+.dfcfill{height:100%;border-radius:2px;transition:width 1.1s ease}
+.feedp{background:#fff;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;
+  box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.feedh{padding:9px 15px;border-bottom:1px solid #EEF1F6;background:var(--panel);
+  font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx3);display:flex;align-items:center;gap:7px}
+.flive{width:6px;height:6px;border-radius:50%;background:#DC2626;box-shadow:0 0 6px rgba(220,38,38,.5)}
+@keyframes pp{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.flive{animation:pp 1.2s infinite}
+.flist{max-height:175px;overflow-y:auto}
+.flist::-webkit-scrollbar{width:2px}
+.flist::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.fi{display:flex;align-items:flex-start;gap:9px;padding:7px 15px;
+  border-bottom:1px solid #F5F7FA;font-size:11.5px}
+.fi:last-child{border-bottom:none}
+.fiic{font-size:13px;flex-shrink:0;margin-top:1px}
+.fib{flex:1}
+.fit{font-weight:600}
+.fis{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--tx4);margin-top:1px}
+.fitm{font-family:'DM Mono',monospace;font-size:9px;color:var(--tx4);flex-shrink:0;margin-top:2px}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="logo-pill">COHR</div>
+  <div><div class="logo-name">Lab Simulator</div><div class="logo-sub">Coherent Corp · Sherman TX · XRPL EVM Testnet</div></div>
+  <div class="hsep"></div>
+  <div class="hcrumb" id="hcrumb"><b>Floor Plan</b> — Hover rooms &amp; workers · Click for info</div>
+  <div class="hr">
+    <button class="hbtn" id="fnBtn" onclick="toggleFn()">⚙ Functions</button>
+    <button class="hbtn" id="dashBtn" onclick="openDash()">⬡ Dashboard</button>
+    <div class="waddr" id="waddr">not connected</div>
+    <button class="cbtn" id="cbtn">Connect Wallet</button>
+  </div>
+</header>
+
+<canvas id="cv"></canvas>
+
+<!-- RIGHT SIDEBAR -->
+<div id="sb"><div class="sbi">
+  <div class="sbhdr">
+    <button class="sbx" onclick="closeSB()">✕</button>
+    <div class="sbtag" id="sbtag">Step 1 of 6</div>
+    <div class="sbname" id="sbname"></div>
+    <div class="sbsub" id="sbsub"></div>
+  </div>
+  <div id="sbbody"></div>
+</div></div>
+
+<!-- LEFT FUNCTIONS PANEL -->
+<div id="fnp"><div class="fninner">
+  <div class="fnhdr">
+    <div><div class="fnhdr-t">Contract Functions</div><div class="fnhdr-s">CohrLab.sol · XRPL EVM 1449000</div></div>
+    <button class="fnx" onclick="closeFn()">✕</button>
+  </div>
+
+  <div class="fnsec">
+    <div class="fnseclbl" style="color:#DC2626">Write Functions <span class="badge bw">Tx</span></div>
+    <div class="fncard">
+      <div class="fncard-name">createBatch(string name)</div>
+      <div class="fncard-desc">Deploy a new batch into the pipeline at Step 0 — LEC Crystal Growth.</div>
+      <div class="fnf"><div class="fnflbl">Batch Name</div><input class="fninput" id="fn-cn" placeholder="e.g. WAFER-042" maxlength="32"></div>
+      <button class="fnbtn exec" onclick="fnCreate()">Execute →</button>
+      <div class="fnres" id="fn-cr"></div>
+    </div>
+    <div class="fncard">
+      <div class="fncard-name">advanceBatch(uint256 batchId)</div>
+      <div class="fncard-desc">Advance a batch to the next manufacturing step. Only the batch owner can call.</div>
+      <div class="fnf"><div class="fnflbl">Batch ID</div><input class="fninput" id="fn-ai" placeholder="0" type="number" min="0"></div>
+      <button class="fnbtn exec" onclick="fnAdv()">Execute →</button>
+      <div class="fnres" id="fn-ar"></div>
+    </div>
+    <div class="fncard">
+      <div class="fncard-name">abandonBatch(uint256 batchId)</div>
+      <div class="fncard-desc">Mark a batch as abandoned mid-pipeline. Simulates a yield failure. Irreversible.</div>
+      <div class="fnf"><div class="fnflbl">Batch ID</div><input class="fninput" id="fn-abi" placeholder="0" type="number" min="0"></div>
+      <button class="fnbtn danger" onclick="fnAbn()">Abandon Batch</button>
+      <div class="fnres" id="fn-abr"></div>
+    </div>
+    <div class="fncard">
+      <div class="fncard-name">setStepNote(uint256 batchId, uint8 step, string note)</div>
+      <div class="fncard-desc">Attach a process note to a completed step — e.g. "Threshold 9.8mA PASS".</div>
+      <div class="fnf"><div class="fnflbl">Batch ID</div><input class="fninput" id="fn-ni" placeholder="0" type="number" min="0"></div>
+      <div class="fnf"><div class="fnflbl">Step (0–5)</div>
+        <select class="fnsel" id="fn-ns">
+          <option value="0">0 — LEC Crystal Growth</option>
+          <option value="1">1 — Wafering + CMP</option>
+          <option value="2">2 — MOCVD Epitaxy</option>
+          <option value="3">3 — Litho + ICP-RIE</option>
+          <option value="4">4 — LIV Probe Test</option>
+          <option value="5">5 — Cleave + Pigtail</option>
+        </select>
+      </div>
+      <div class="fnf"><div class="fnflbl">Note</div><input class="fninput" id="fn-nt" placeholder="e.g. Threshold 9.8mA — PASS" maxlength="128"></div>
+      <button class="fnbtn exec" onclick="fnNote()">Execute →</button>
+      <div class="fnres" id="fn-nr"></div>
+    </div>
+  </div>
+
+  <div class="fnsec">
+    <div class="fnseclbl" style="color:#059669">Read Functions <span class="badge br">Free</span></div>
+    <div class="fncard">
+      <div class="fncard-name">getBatch(uint256 batchId)</div>
+      <div class="fncard-desc">Full batch details — owner, step, timestamps, complete status.</div>
+      <div class="fnf"><div class="fnflbl">Batch ID</div><input class="fninput" id="fn-gi" placeholder="0" type="number" min="0"></div>
+      <button class="fnbtn query" onclick="fnGet()">Query →</button>
+      <div class="fnres" id="fn-gr"></div>
+    </div>
+    <div class="fncard">
+      <div class="fncard-name">getBatchesByOwner(address owner)</div>
+      <div class="fncard-desc">Returns all batch IDs owned by an address.</div>
+      <div class="fnf"><div class="fnflbl">Address</div><input class="fninput" id="fn-oa" placeholder="0x..."></div>
+      <button class="fnbtn query" onclick="fnOwner()">Query →</button>
+      <div class="fnres" id="fn-or"></div>
+    </div>
+    <div class="fncard">
+      <div class="fncard-name">getBatchCount()</div>
+      <div class="fncard-desc">Total number of batches ever created on this contract.</div>
+      <button class="fnbtn query" onclick="fnCount()">Query →</button>
+      <div class="fnres" id="fn-ctr"></div>
+    </div>
+    <div class="fncard">
+      <div class="fncard-name">timeAtCurrentStep(uint256 batchId)</div>
+      <div class="fncard-desc">Seconds this batch has been at its current step.</div>
+      <div class="fnf"><div class="fnflbl">Batch ID</div><input class="fninput" id="fn-ti" placeholder="0" type="number" min="0"></div>
+      <button class="fnbtn query" onclick="fnTime()">Query →</button>
+      <div class="fnres" id="fn-tr"></div>
+    </div>
+    <div class="fncard">
+      <div class="fncard-name">getBatchSteps(uint256 batchId)</div>
+      <div class="fncard-desc">All 6 step timestamps and attached notes for a batch.</div>
+      <div class="fnf"><div class="fnflbl">Batch ID</div><input class="fninput" id="fn-si" placeholder="0" type="number" min="0"></div>
+      <button class="fnbtn query" onclick="fnSteps()">Query →</button>
+      <div class="fnres" id="fn-sr"></div>
+    </div>
+  </div>
+</div></div>
+
+<!-- BOTTOM BAR -->
+<div class="bar">
+  <div class="blbl">New Batch</div>
+  <input class="binput" id="bni" placeholder="e.g. WAFER-042" maxlength="20">
+  <button class="bbtn cr" onclick="createBatch()">+ Create</button>
+  <div class="bsep"></div>
+  <div class="blbl">Active</div>
+  <div class="chips" id="chips"><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx4)">No batches yet</span></div>
+  <div class="bsep"></div>
+  <button class="bbtn adv" id="advBtn" style="display:none" onclick="advSel()">Advance →</button>
+  <button class="bbtn play" id="playBtn" style="display:none" onclick="togglePlay()">▶ Auto</button>
+</div>
+
+<!-- TOOLTIPS -->
+<div class="tip" id="rtip"><div class="tip-name" id="rtn"></div><div class="tip-desc" id="rtd"></div><div class="tip-hint">Click to open info →</div></div>
+<div class="tip" id="wtip"><div class="wt-role" id="wtr"></div><div class="wt-act" id="wta"></div></div>
+<div class="tip" id="btip" style="font-family:'DM Mono',monospace;font-size:11px;line-height:1.7"></div>
+
+<!-- TX OVERLAY -->
+<div id="txov">
+  <div class="txovt" id="txovt">Transaction</div>
+  <div class="txst" id="tx1"><div class="txdot"></div>Preparing Tx</div>
+  <div class="txst" id="tx2"><div class="txdot"></div>Broadcasting</div>
+  <div class="txst" id="tx3"><div class="txdot"></div>Mining Block</div>
+  <div class="txst" id="tx4"><div class="txdot"></div>Confirmed</div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dash">
+  <div class="dhdr">
+    <div><div class="dtitle">Production Dashboard</div><div class="dsub">XRPL EVM Testnet · Chain 1449000 · Session</div></div>
+    <button class="dclose" onclick="closeDash()">✕ Close [Tab]</button>
+  </div>
+  <div class="dbody">
+    <div class="bcards" id="bcards"></div>
+    <div class="dfnl" id="dfnl"></div>
+    <div class="feedp">
+      <div class="feedh"><div class="flive"></div>On-Chain Event Log</div>
+      <div class="flist" id="flist"><div style="padding:12px 15px;font-family:'DM Mono',monospace;font-size:10px;color:var(--tx4);text-align:center">No events yet — create a batch to begin</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── CONTRACT — replace with your deployed address ─── */
+var CONTRACT="0x870201041262975C5b40941e1fE85792Fb2dfF3D"; // ← paste deployed address here
+var ABI=["function createBatch(string name) external returns (uint256)","function advanceBatch(uint256 batchId) external","function abandonBatch(uint256 batchId) external","function setStepNote(uint256 batchId,uint8 step,string note) external","function getBatch(uint256 batchId) view returns (uint256,string,address,uint8,uint256,uint256,bool,bool)","function getBatchSteps(uint256 batchId) view returns (uint256[6],string[6])","function getBatchesByOwner(address owner) view returns (uint256[])","function batchCount() view returns (uint256)","function timeAtCurrentStep(uint256 batchId) view returns (uint256)"];
+
+/* ─── ROOM DATA ─── */
+var ROOMS=[
+  {id:0,name:"LEC Crystal Growth",sn:"Crystal\nGrowth",sub:"Liquid Encapsulated Czochralski Furnace",col:"#E8420A",
+   plain:"We grow the raw InP semiconductor crystal. Indium and phosphorus are melted at 1060°C under 60 atmospheres of nitrogen. A seed crystal is pulled upward to grow a perfect 150mm cylinder called a boule.",
+   sci:'InP is melted at <span class="gl" style="color:#E8420A">1060°C<span class="glt">Phosphorus boils at 280°C. Without 60atm N₂ and a boric oxide encapsulant, it would escape the melt and ruin crystal composition.</span></span> under 60 atm N₂. A seed crystal pulls at 10mm/hr growing a 150mm <span class="gl" style="color:#E8420A">boule<span class="glt">One 150mm boule yields ~350 wafers, each producing thousands of laser chips.</span></span>.',
+   stats:[{k:"Melt Temp",v:"1,060°C"},{k:"Pull Rate",v:"10mm/hr"},{k:"Pressure",v:"60 atm N₂"},{k:"Diameter",v:"150mm"},{k:"Duration",v:"~12 hrs"},{k:"Material",v:"InP"}],
+   ff:'<strong>Why InP?</strong> Silicon emits at the wrong wavelength. InP naturally emits at 1310nm and 1550nm — where glass fiber loses the least light. Your fiber internet depends on this.',
+   workers:["Monitoring melt temp: 1060°C","Adjusting pull rate: 10mm/hr","Checking boule diameter","Recording boric oxide level"]},
+  {id:1,name:"Wafering + CMP",sn:"Wafering\nCMP",sub:"Multi-Wire Saw + Chemical Mechanical Planarization",col:"#0EA5E9",
+   plain:"We slice the crystal boule into 350µm-thick wafers using hundreds of parallel wires coated in abrasive slurry, then polish each wafer to atomic-level smoothness.",
+   sci:'Hundreds of wires coated in <span class="gl" style="color:#0EA5E9">abrasive slurry<span class="glt">Silicon carbide particles in coolant. One pass cuts all ~350 wafers simultaneously.</span></span> cut the boule at once. Each wafer then undergoes <span class="gl" style="color:#0EA5E9">CMP<span class="glt">Colloidal silica in KOH. Chemistry softens atoms, polishing pad removes them. Result: sub-nanometer flatness.</span></span> — roughness under 0.5nm.',
+   stats:[{k:"Thickness",v:"350 µm"},{k:"Tolerance",v:"±25 µm"},{k:"Roughness",v:"<0.5 nm"},{k:"Kerf Loss",v:"~10%"},{k:"Wafers",v:"~350/boule"},{k:"Wire Diam",v:"120 µm"}],
+   ff:'<strong>Scale:</strong> If a wafer were the size of a football field, the biggest bump after CMP would be less than 1cm tall.',
+   workers:["Loading boule into wire saw","Monitoring wire tension","Checking slurry flow rate","Measuring wafer flatness"]},
+  {id:2,name:"MOCVD Epitaxy",sn:"MOCVD\nEpitaxy",sub:"Metal-Organic Chemical Vapor Deposition",col:"#A855F7",
+   plain:"We deposit individual atomic layers onto the wafer using toxic precursor gases at 600°C. The 8nm quantum well thickness sets the laser's exact emission wavelength.",
+   sci:'Gases like <span class="gl" style="color:#A855F7">trimethylindium<span class="glt">(CH₃)₃In. At 600°C it decomposes, depositing indium atoms layer by layer. Mixed with phosphine and arsine, we grow InGaAsP quantum wells.</span></span> flow across the 600°C wafer. Eight <span class="gl" style="color:#A855F7">quantum wells<span class="glt">8nm InGaAsP between InP. Well thickness sets emission wavelength. Thinner = bluer.</span></span> at 8nm each form the active region.',
+   stats:[{k:"Temp",v:"600°C"},{k:"Rate",v:"0.1nm/sec"},{k:"QW Layers",v:"8 wells"},{k:"QW Thick",v:"8nm each"},{k:"Lattice",v:"±0.01%"},{k:"Reactor",v:"Aixtron"}],
+   ff:'<strong>Quantum confinement:</strong> Changing well thickness by 1nm shifts emission ~20nm. Same material makes 1310nm and 1550nm lasers.',
+   workers:["Checking TMIn flow: nominal","Growth rate: 0.1nm/s ✓","Verifying lattice ±0.01%","Logging AsH₃ consumption"]},
+  {id:3,name:"Photolithography + ICP-RIE",sn:"Litho\nEtch",sub:"Oxford PlasmaPro 100 — Class 1000 Cleanroom",col:"#F59E0B",
+   plain:"UV light prints circuit patterns onto the wafer, then plasma carves 2µm-wide laser waveguides. Amber lighting is used — UV would expose the photosensitive coating.",
+   sci:'A <span class="gl" style="color:#F59E0B">SiNx hard mask<span class="glt">Silicon nitride deposited by PECVD. Resists the Cl₂/H₂ plasma that etches InP.</span></span> is deposited, resist spun on, UV-exposed through a chrome mask. <span class="gl" style="color:#F59E0B">ICP-RIE<span class="glt">Cl₂/H₂ plasma etches InP while ions ensure vertical sidewalls.</span></span> etches 600nm deep. A 240nm DFB grating forces single-frequency lasing.',
+   stats:[{k:"Grating",v:"240 nm"},{k:"Ridge",v:"2 µm"},{k:"Etch Depth",v:"600 nm"},{k:"Gas",v:"Cl₂/H₂"},{k:"Cleanroom",v:"Class 1000"},{k:"Machine",v:"Oxford PP100"}],
+   ff:'<strong>Yellow light:</strong> Photoresist is sensitive to UV in white light. Every cleanroom litho area worldwide uses amber lighting — physics, not aesthetics.',
+   workers:["Spinning photoresist coat","UV exposing through mask","Setting Cl₂ flow: 20 sccm","Measuring etch depth: 600nm"]},
+  {id:4,name:"LIV Probe Testing",sn:"LIV Probe\nTest",sub:"MPI TS200 Automated Wafer Probe Station",col:"#10B981",
+   plain:"Every chip is tested while still on the wafer. Metal needles contact each chip, current ramps 0–100mA, we measure light output. Failed chips are inked as rejects.",
+   sci:'Probes contact each chip. Current ramps while a detector captures the <span class="gl" style="color:#10B981">L-I-V curve<span class="glt">Below threshold: spontaneous emission. At threshold: lasing kink. Above: linear. Slope = efficiency.</span></span>. Threshold (~10mA), slope efficiency (~0.3 W/A), <span class="gl" style="color:#10B981">WPE<span class="glt">Optical out ÷ electrical in. At 30% WPE, 1W → 300mW laser + 700mW heat.</span></span> (25–35%). Fails inked.',
+   stats:[{k:"Threshold",v:"~10 mA"},{k:"Slope Eff",v:"~0.3 W/A"},{k:"WPE",v:"25–35%"},{k:"Wavelength",v:"1310/1550nm"},{k:"Temp",v:"25°C chuck"},{k:"Station",v:"MPI TS200"}],
+   ff:'<strong>WPE at scale:</strong> 10 million transceivers in a hyperscale data center. 25%→30% WPE = electricity saved for a small city.',
+   workers:["Probing die at (22,15)","Threshold: 9.8mA — PASS","L-I-V slope: 0.31 W/A ✓","Inking failed die at (18,9)"]},
+  {id:5,name:"Cleave + AR Coat + Pigtailing",sn:"Cleave\nPigtail",sub:"Cleaving · E-Beam Coating · 6-Axis Alignment",col:"#06B6D4",
+   plain:"Chips snap along crystal planes for mirror facets, get AR coated to eliminate reflections, then receive an optical fiber aligned to 100-atom precision locked with UV epoxy.",
+   sci:'The wafer snaps along <span class="gl" style="color:#06B6D4">{011} planes<span class="glt">Natural cleavage planes. Facet roughness under 1nm — no grinding needed.</span></span>. E-beam deposits SiO₂/TiO₂ for <span class="gl" style="color:#06B6D4">AR coating<span class="glt">λ/4n-thick layers cancel reflections. Facet reflection: 30%→<0.01%.</span></span>. A <span class="gl" style="color:#06B6D4">6-axis piezo stage<span class="glt">Nanometer steps maximize coupling while UV epoxy cures in ~30s.</span></span> aligns fiber to ±0.1µm.',
+   stats:[{k:"AR Coat",v:"<0.01% R"},{k:"Alignment",v:"±0.1 µm"},{k:"Coupling",v:"<1 dB"},{k:"Facet",v:"<1 nm"},{k:"Burn-in",v:"1000hr@70°C"},{k:"Cure",v:"UV ~30s"}],
+   ff:'<strong>100 atoms:</strong> The robot positions a 125µm fiber to within 100 atoms of center. Moving 200 atoms off halves optical power permanently.',
+   workers:["Cleaving along {011} plane","Running AR coat: SiO₂/TiO₂","6-axis fiber alignment: 0.8dB","UV epoxy curing: 30s"]}
+];
+
+var TUBE_ORDER=[0,1,2,5,4,3]; /* snake: top L→R then drop right, bottom R→L */
+var BCOLS=["#E8420A","#0EA5E9","#A855F7","#F59E0B","#10B981","#06B6D4","#EF4444","#EC4899"];
+var FDATA=[
+  {k:"Crystals",u:"boules",key:"c0",col:"#E8420A",tip:"Each InP boule takes ~12 hrs and yields ~350 wafers. Coherent runs multiple LEC pullers simultaneously at Sherman TX."},
+  {k:"Wafers",u:"wafers",key:"c1",col:"#0EA5E9",tip:"One 150mm wafer yields ~3,000 chips. Wire saw kerf loss ~10% — 1 in 10 wafers becomes saw dust."},
+  {k:"Epitaxy",u:"runs",key:"c2",col:"#A855F7",tip:"MOCVD runs take ~4 hours. QW thickness tuned to ±0.1nm — about one atom — to hit wavelength within 1nm."},
+  {k:"Etched",u:"wafers",key:"c3",col:"#F59E0B",tip:"After ICP-RIE, ridge waveguides are 2µm wide — 1/50th a human hair — and must be uniform across 150mm."},
+  {k:"Tested",u:"chips",key:"c4",col:"#10B981",tip:"Industry yield: ~65% avg, ~85% best-in-class. Every chip individually probed — not sampled."},
+  {k:"Packaged",u:"units",key:"c5",col:"#06B6D4",tip:"1000hr burn-in at 70°C before shipment. Typical hyperscale orders: 50,000–200,000 units."}
+];
+
+/* ─── STATE ─── */
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+var provider,signer,contract;
+var txFlight=false,autoPlay=false,autoTmr=null,selId=null,openRm=-1;
+/* batches: id -> {id,name,step,col,complete,abandoned,createdAt,orb:{frac,tfrac,x,y},fadeTimer,alpha} */
+var batches={},batchHistory={},bCount=0,fStats={c0:0,c1:0,c2:0,c3:0,c4:0,c5:0};
+var rooms=[],workers=[],tubePts=[],tubeLen=0,flowP=[];
+var AT=0;
+/* offsets controlled by panels */
+var FN_W=0,SB_W=0;
+
+/* ─── CANVAS SIZING ─── */
+function syncCanvas(){
+  FN_W=document.getElementById("fnp").classList.contains("open")?330:0;
+  SB_W=document.getElementById("sb").classList.contains("open")?296:0;
+  var W=window.innerWidth-FN_W-SB_W;
+  var H=window.innerHeight-52-60;
+  cv.style.left=FN_W+"px";
+  cv.style.width=W+"px";
+  cv.style.height=H+"px";
+  if(cv.width!==W||cv.height!==H){
+    cv.width=W; cv.height=H;
+    computeRooms();
+  }
+}
+
+/* ─── TUBE ─── */
+function buildTube(){
+  tubePts=[];
+  if(!rooms.length)return;
+  for(var i=0;i<TUBE_ORDER.length;i++){
+    var r=rooms[TUBE_ORDER[i]];
+    var cx2=r.x+r.w*.5, cy2=r.y+r.h*.5;
+    if(i===0){tubePts.push({x:cx2,y:cy2,dist:0});continue;}
+    var prev=rooms[TUBE_ORDER[i-1]];
+    var pcx=prev.x+prev.w*.5, pcy=prev.y+prev.h*.5;
+    var dx=cx2-pcx, dy=cy2-pcy;
+    var isV=Math.abs(dy)>Math.abs(dx);
+    var c1x,c1y,c2x,c2y;
+    if(isV){var sg=dy>0?1:-1;c1x=pcx;c1y=pcy+sg*Math.abs(dy)*.45;c2x=cx2;c2y=cy2-sg*Math.abs(dy)*.45;}
+    else{var sg2=dx>0?1:-1;c1x=pcx+sg2*Math.abs(dx)*.45;c1y=pcy;c2x=cx2-sg2*Math.abs(dx)*.45;c2y=cy2;}
+    var steps=50;
+    for(var t=1/steps;t<=1+.0001;t+=1/steps){
+      var tt=Math.min(t,1);
+      var bx=cub(pcx,c1x,c2x,cx2,tt), by=cub(pcy,c1y,c2y,cy2,tt);
+      tubePts.push({x:bx,y:by});
+    }
+  }
+  tubeLen=0;
+  for(var i2=1;i2<tubePts.length;i2++){
+    var ddx=tubePts[i2].x-tubePts[i2-1].x, ddy=tubePts[i2].y-tubePts[i2-1].y;
+    tubePts[i2].dist=tubeLen+=Math.sqrt(ddx*ddx+ddy*ddy);
+  }
+  tubePts[0].dist=0;
+}
+function cub(p0,p1,p2,p3,t){var u=1-t;return u*u*u*p0+3*u*u*t*p1+3*u*t*t*p2+t*t*t*p3;}
+function tubePos(f){
+  if(!tubePts.length)return{x:0,y:0};
+  var target=Math.max(0,Math.min(1,f))*tubeLen;
+  for(var i=1;i<tubePts.length;i++){
+    if(tubePts[i].dist>=target){
+      var a=tubePts[i-1],b=tubePts[i];
+      var seg=b.dist-a.dist,ff=seg<.001?0:(target-a.dist)/seg;
+      return{x:a.x+(b.x-a.x)*ff,y:a.y+(b.y-a.y)*ff};
+    }
+  }
+  return{x:tubePts[tubePts.length-1].x,y:tubePts[tubePts.length-1].y};
+}
+function stepFrac(step){
+  var si=Math.min(step,TUBE_ORDER.length-1);
+  var r=rooms[TUBE_ORDER[si]]; if(!r||!tubePts.length)return step/5;
+  var cx2=r.x+r.w*.5, cy2=r.y+r.h*.5;
+  var best=0,bestD=Infinity;
+  tubePts.forEach((p,i)=>{var d=(p.x-cx2)*(p.x-cx2)+(p.y-cy2)*(p.y-cy2);if(d<bestD){bestD=d;best=i;}});
+  return tubePts[best].dist/tubeLen;
+}
+
+/* ─── LAYOUT ─── */
+function computeRooms(){
+  var W=cv.width, H=cv.height;
+  var pad=16,gap=10;
+  var rw=(W-pad*2-gap*2)/3, rh=(H-pad*2-gap)/2;
+  rooms=ROOMS.map((_,i)=>({x:pad+(i%3)*(rw+gap),y:pad+Math.floor(i/3)*(rh+gap),w:rw,h:rh,id:i}));
+  buildTube();
+  initWorkers();
+  initFlow();
+  Object.values(batches).forEach(b=>{
+    if(!b.complete&&!b.abandoned){
+      var tf=stepFrac(b.step);
+      b.orb={frac:tf,tfrac:tf,x:0,y:0};
+      var p=tubePos(tf);b.orb.x=p.x;b.orb.y=p.y;
+    }
+  });
+}
+
+/* ─── WORKERS ─── */
+function initWorkers(){
+  workers=[];
+  ROOMS.forEach((_,ri)=>{
+    var r=rooms[ri];if(!r)return;
+    for(var i=0;i<2;i++){
+      workers.push({rid:ri,idx:i,
+        ax:r.x+(i===0?.27:.67)*r.w, ay:r.y+(i===0?.52:.62)*r.h,
+        phase:Math.PI*2*Math.random(), speed:.28+Math.random()*.18,
+        rx:r.w*.052, ry:r.h*.038,
+        aIdx:Math.floor(Math.random()*4), aTmr:Math.random()*4, cx:0,cy:0});
+    }
+  });
+}
+function updateAnchors(){
+  workers.forEach(w=>{
+    var r=rooms[w.rid];if(!r)return;
+    w.ax=r.x+(w.idx===0?.27:.67)*r.w; w.ay=r.y+(w.idx===0?.52:.62)*r.h;
+    w.rx=r.w*.052; w.ry=r.h*.038;
+  });
+}
+function initFlow(){
+  flowP=[];
+  for(var i=0;i<16;i++)flowP.push({f:Math.random(),spd:.0005+Math.random()*.0004,a:.12+Math.random()*.18,sz:1.2+Math.random()*1.4});
+}
+
+/* ─── DRAW ─── */
+function draw(t){
+  var W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+
+  /* WHITE background */
+  ctx.fillStyle="#EEF1F6";
+  ctx.fillRect(0,0,W,H);
+
+  /* dot grid */
+  ctx.fillStyle="rgba(140,155,180,.17)";
+  for(var gx=12;gx<W;gx+=24)for(var gy=12;gy<H;gy+=24){
+    ctx.beginPath();ctx.arc(gx,gy,.85,0,Math.PI*2);ctx.fill();
+  }
+
+  if(!rooms.length||!tubePts.length)return;
+
+  /* CORRIDORS */
+  ctx.fillStyle="rgba(255,255,255,.75)";ctx.strokeStyle="rgba(200,212,226,.7)";ctx.lineWidth=1;
+  [[0,1],[1,2],[3,4],[4,5]].forEach(([a,b])=>{
+    var ra=rooms[a],rb=rooms[b],y2=ra.y+ra.h*.5-13;
+    ctx.beginPath();ctx.roundRect(ra.x+ra.w,y2,rb.x-(ra.x+ra.w),26,3);ctx.fill();ctx.stroke();
+  });
+  [[0,3],[1,4],[2,5]].forEach(([a,b])=>{
+    var ra=rooms[a],rb=rooms[b],x2=ra.x+ra.w*.5-13;
+    ctx.beginPath();ctx.roundRect(x2,ra.y+ra.h,26,rb.y-(ra.y+ra.h),3);ctx.fill();ctx.stroke();
+  });
+
+  /* ── TUBE — visible mid-grey so orbs pop ── */
+  if(tubePts.length>1){
+    ctx.save();ctx.lineCap="round";ctx.lineJoin="round";
+    /* outer glow */
+    ctx.lineWidth=18;ctx.strokeStyle="rgba(160,175,200,.18)";
+    ctx.beginPath();ctx.moveTo(tubePts[0].x,tubePts[0].y);
+    tubePts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.stroke();
+    /* main tube wall — clear mid-grey */
+    ctx.lineWidth=9;ctx.strokeStyle="#C8D4E0";
+    ctx.beginPath();ctx.moveTo(tubePts[0].x,tubePts[0].y);
+    tubePts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.stroke();
+    /* inner lighter channel */
+    ctx.lineWidth=4;ctx.strokeStyle="#DDE6EF";
+    ctx.beginPath();ctx.moveTo(tubePts[0].x,tubePts[0].y);
+    tubePts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.stroke();
+    /* segment color tints */
+    for(var si=0;si<TUBE_ORDER.length-1;si++){
+      var f0=stepFrac(si),f1=stepFrac(si+1);
+      var i0=Math.floor(f0*(tubePts.length-1)),i1=Math.floor(f1*(tubePts.length-1));
+      if(i1<=i0)continue;
+      ctx.lineWidth=3;ctx.strokeStyle=ROOMS[TUBE_ORDER[si+1]].col+"44";
+      ctx.beginPath();ctx.moveTo(tubePts[i0].x,tubePts[i0].y);
+      for(var pi=i0+1;pi<=i1&&pi<tubePts.length;pi++)ctx.lineTo(tubePts[pi].x,tubePts[pi].y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* FLOW PARTICLES */
+  flowP.forEach(p=>{
+    p.f+=p.spd;if(p.f>1)p.f-=1;
+    var pos=tubePos(p.f);
+    var idx=Math.min(Math.floor(p.f*(TUBE_ORDER.length-1)),TUBE_ORDER.length-1);
+    var col=ROOMS[TUBE_ORDER[idx]].col;
+    ctx.beginPath();ctx.arc(pos.x,pos.y,p.sz,0,Math.PI*2);
+    ctx.fillStyle=col+Math.round(p.a*255).toString(16).padStart(2,"0");ctx.fill();
+  });
+
+  /* STATION NODES */
+  TUBE_ORDER.forEach((rid,si)=>{
+    var r=rooms[rid],rm=ROOMS[rid];
+    var cx2=r.x+r.w*.5, cy2=r.y+r.h*.5;
+    var has=Object.values(batches).some(b=>b.step===si&&!b.complete&&!b.abandoned&&b.alpha>0.1);
+    var pulse=has?(.72+.28*Math.sin(t*2.8)):1;
+    ctx.beginPath();ctx.arc(cx2,cy2,15*pulse,0,Math.PI*2);
+    ctx.strokeStyle=rm.col+(has?"99":"33");ctx.lineWidth=has?2:1;ctx.stroke();
+    ctx.beginPath();ctx.arc(cx2,cy2,9,0,Math.PI*2);
+    ctx.fillStyle=rm.col+(has?"DD":"55");
+    ctx.shadowColor=has?rm.col:"transparent";ctx.shadowBlur=has?14:0;ctx.fill();ctx.shadowBlur=0;
+    ctx.fillStyle="#fff";ctx.font="700 8px 'DM Mono'";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(si+1,cx2,cy2);
+  });
+
+  /* ROOMS */
+  rooms.forEach((r,i)=>{
+    var rm=ROOMS[i], isOpen=openRm===i;
+    var tubeIdx=TUBE_ORDER.indexOf(i);
+    var hasBatch=tubeIdx>=0&&Object.values(batches).some(b=>b.step===tubeIdx&&!b.complete&&!b.abandoned);
+    /* shadow */
+    if(isOpen||hasBatch){ctx.shadowColor=rm.col+(isOpen?"55":"22");ctx.shadowBlur=isOpen?20:10;}
+    ctx.fillStyle=isOpen?rm.col+"12":"#FFFFFF";
+    ctx.beginPath();ctx.roundRect(r.x,r.y,r.w,r.h,8);ctx.fill();ctx.shadowBlur=0;
+    /* border */
+    ctx.strokeStyle=isOpen?rm.col:hasBatch?rm.col+"88":"rgba(205,214,228,.9)";
+    ctx.lineWidth=isOpen?2:hasBatch?1.5:1;
+    ctx.beginPath();ctx.roundRect(r.x,r.y,r.w,r.h,8);ctx.stroke();
+    /* top strip */
+    ctx.fillStyle=rm.col;
+    ctx.beginPath();ctx.roundRect(r.x,r.y,r.w,4,[8,8,0,0]);ctx.fill();
+    /* inner shine */
+    var sh=ctx.createLinearGradient(r.x,r.y,r.x,r.y+r.h*.35);
+    sh.addColorStop(0,"rgba(255,255,255,.55)");sh.addColorStop(1,"transparent");
+    ctx.fillStyle=sh;ctx.beginPath();ctx.roundRect(r.x+1,r.y+4,r.w-2,r.h*.35,0);ctx.fill();
+    /* room name */
+    ctx.fillStyle="#0D1117";ctx.font="700 12px 'Syne'";
+    ctx.textAlign="left";ctx.textBaseline="top";ctx.fillText(rm.name,r.x+10,r.y+10);
+    /* sub */
+    ctx.fillStyle="#8A96A4";ctx.font="400 8.5px 'DM Mono'";
+    ctx.fillText(rm.sub.length>42?rm.sub.slice(0,41)+"…":rm.sub,r.x+10,r.y+25);
+    /* machine area */
+    ctx.fillStyle=rm.col+"07";ctx.strokeStyle=rm.col+"1A";ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(r.x+7,r.y+40,r.w-14,r.h-72,4);ctx.fill();ctx.stroke();
+    drawSch(i,r,t);
+    /* hint */
+    ctx.fillStyle="#C0CAD8";ctx.font="400 8px 'DM Mono'";
+    ctx.textAlign="center";ctx.textBaseline="bottom";ctx.fillText("click for info",r.x+r.w*.5,r.y+r.h-6);
+  });
+
+  /* WORKER DOTS */
+  workers.forEach(w=>{
+    w.aTmr+=1/60;if(w.aTmr>3.8){w.aTmr=0;w.aIdx=(w.aIdx+1)%4;}
+    var ph=w.phase+t*w.speed;
+    w.cx=w.ax+Math.cos(ph)*w.rx; w.cy=w.ay+Math.sin(ph)*w.ry;
+    var rm=ROOMS[w.rid], tubeIdx=TUBE_ORDER.indexOf(w.rid);
+    var act=tubeIdx>=0&&Object.values(batches).some(b=>b.step===tubeIdx&&!b.complete&&!b.abandoned);
+    var sz=act?4.8:3.2;
+    if(act){ctx.beginPath();ctx.arc(w.cx,w.cy,sz+5,0,Math.PI*2);ctx.fillStyle=rm.col+"20";ctx.fill();}
+    ctx.beginPath();ctx.arc(w.cx,w.cy,sz,0,Math.PI*2);
+    ctx.fillStyle=rm.col+(act?"EE":"77");
+    ctx.shadowColor=act?rm.col:"transparent";ctx.shadowBlur=act?10:0;ctx.fill();ctx.shadowBlur=0;
+    ctx.beginPath();ctx.arc(w.cx,w.cy,sz*.38,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();
+  });
+
+  /* BATCH ORBS — with fade out on complete */
+  Object.values(batches).forEach(b=>{
+    if(!b.orb)return;
+    /* fade completed batches out after 3s */
+    if(b.complete&&b.fadeTimer===undefined)b.fadeTimer=AT;
+    if(b.complete){
+      var elapsed=AT-b.fadeTimer;
+      b.alpha=Math.max(0,1-Math.max(0,elapsed-3)/1.5); /* start fading at 3s, done by 4.5s */
+      if(b.alpha<=0)return; /* fully faded — don't draw */
+    } else {
+      b.alpha=1;
+    }
+    /* animate frac */
+    if(Math.abs(b.orb.frac-b.orb.tfrac)>0.0005){
+      var spd=0.0028;
+      var dir=b.orb.tfrac>b.orb.frac?1:-1;
+      b.orb.frac=Math.min(Math.max(b.orb.frac+dir*spd,0),1);
+      if(dir>0&&b.orb.frac>=b.orb.tfrac)b.orb.frac=b.orb.tfrac;
+      if(dir<0&&b.orb.frac<=b.orb.tfrac)b.orb.frac=b.orb.tfrac;
+    }
+    var pos=tubePos(b.orb.frac); b.orb.x=pos.x; b.orb.y=pos.y;
+    ctx.globalAlpha=b.alpha;
+    /* trail */
+    for(var tr=1;tr<=5;tr++){
+      var tf=Math.max(0,b.orb.frac-tr*.0025);
+      var tp=tubePos(tf);
+      ctx.beginPath();ctx.arc(tp.x,tp.y,3.5-tr*.5,0,Math.PI*2);
+      ctx.fillStyle=b.col+Math.round((6-tr)*.055*255).toString(16).padStart(2,"0");ctx.fill();
+    }
+    /* orb */
+    var pulse=b.complete?1:.86+.14*Math.sin(t*2.5+b.id);
+    var sz=b.complete?7:8.5*pulse;
+    /* outer glow ring */
+    ctx.beginPath();ctx.arc(pos.x,pos.y,sz+7,0,Math.PI*2);
+    ctx.fillStyle=b.col+"22";ctx.fill();
+    /* orb body */
+    var og=ctx.createRadialGradient(pos.x-2,pos.y-2,1,pos.x,pos.y,sz+1);
+    og.addColorStop(0,"#FFFFFF");og.addColorStop(.3,b.col+"EE");og.addColorStop(1,b.col+"99");
+    ctx.beginPath();ctx.arc(pos.x,pos.y,sz,0,Math.PI*2);
+    ctx.fillStyle=og;
+    ctx.shadowColor=b.col;ctx.shadowBlur=b.complete?8:16;ctx.fill();ctx.shadowBlur=0;
+    if(b.complete){ctx.font="10px serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("★",pos.x,pos.y);}
+    /* label */
+    ctx.fillStyle="#0D1117";ctx.font="500 8px 'DM Mono'";
+    ctx.textAlign="center";ctx.textBaseline="top";
+    ctx.fillText(b.name.slice(0,10),pos.x,pos.y+sz+4);
+    ctx.globalAlpha=1;
+  });
+}
+
+/* ─── SCHEMATICS ─── */
+function drawSch(id,r,t){
+  var bx=r.x+7,by=r.y+40,bw=r.w-14,bh=r.h-72;
+  var cx2=bx+bw*.5,cy2=by+bh*.5, sc=Math.min(bw,bh)/110;
+  ctx.save();ctx.translate(cx2,cy2);ctx.scale(sc,sc);
+  var col=ROOMS[id].col;
+  if(id===0){
+    var ga=ctx.createRadialGradient(0,10,5,0,10,42);ga.addColorStop(0,col+"28");ga.addColorStop(1,"transparent");
+    ctx.fillStyle=ga;ctx.beginPath();ctx.arc(0,10,42,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=col+"12";ctx.strokeStyle=col+"77";ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(-20,-28,40,65,4);ctx.fill();ctx.stroke();
+    ctx.fillStyle=col+"40";ctx.beginPath();ctx.ellipse(0,20,16,7,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle="#BBCAD8";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,-28);ctx.lineTo(0,-52);ctx.stroke();
+    ctx.fillStyle="#D8CCF0";ctx.strokeStyle=col+"66";ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(-8,-28);ctx.lineTo(-10,-50);ctx.lineTo(0,-58);ctx.lineTo(10,-50);ctx.lineTo(8,-28);ctx.closePath();ctx.fill();ctx.stroke();
+    var rr=14+3*Math.sin(t*2);
+    for(var i=1;i<=2;i++){ctx.beginPath();ctx.ellipse(0,20,rr*i*.6,rr*i*.25,0,0,Math.PI*2);ctx.strokeStyle=col+Math.round((.38-i*.1)*255).toString(16).padStart(2,"0");ctx.lineWidth=1;ctx.stroke();}
+  } else if(id===1){
+    ctx.fillStyle=col+"0E";ctx.strokeStyle=col+"66";ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(-35,-22,70,50,4);ctx.fill();ctx.stroke();
+    ctx.fillStyle=col+"18";ctx.strokeStyle=col+"44";ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(-12,-19,24,24,2);ctx.fill();ctx.stroke();
+    var wo=(t*24)%6;
+    for(var wi=0;wi<6;wi++){var wy=-5+wi*3.6-wo*.5;ctx.beginPath();ctx.moveTo(-30,wy);ctx.lineTo(30,wy);ctx.strokeStyle=col+(wi<3?"99":"33");ctx.lineWidth=wi<3?1.1:.55;ctx.stroke();}
+    for(var si=0;si<4;si++){ctx.fillStyle=col+"33";ctx.beginPath();ctx.roundRect(16,8+si*4,18,2,1);ctx.fill();}
+  } else if(id===2){
+    ctx.fillStyle=col+"0E";ctx.strokeStyle=col+"66";ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,0,36,18,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+    var rot=t*.55;
+    for(var wi2=0;wi2<5;wi2++){var wa=rot+wi2*Math.PI*.4,wx=Math.cos(wa)*23,wy2=Math.sin(wa)*11;ctx.fillStyle=col+"55";ctx.strokeStyle=col+"88";ctx.lineWidth=.8;ctx.beginPath();ctx.ellipse(wx,wy2,5.5,2.8,0,0,Math.PI*2);ctx.fill();ctx.stroke();}
+    ctx.fillStyle=col+"44";ctx.strokeStyle=col+"66";ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,0,7,3.5,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+    [col+"55","rgba(80,160,255,.5)","rgba(255,140,40,.5)"].forEach((gc,gi)=>{var ga2=-Math.PI/2+gi*Math.PI/3;ctx.beginPath();ctx.moveTo(Math.cos(ga2)*36,Math.sin(ga2)*18);ctx.lineTo(Math.cos(ga2)*48,Math.sin(ga2)*24);ctx.strokeStyle=gc;ctx.lineWidth=2.5;ctx.stroke();});
+  } else if(id===3){
+    var pa=.15+.08*Math.sin(t*3.1);
+    ctx.fillStyle=col+Math.round(pa*.25*255).toString(16).padStart(2,"0");ctx.beginPath();ctx.arc(0,0,38,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=col+"0E";ctx.strokeStyle=col+"66";ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(-17,-36,34,66,5);ctx.fill();ctx.stroke();
+    ctx.fillStyle=col+"1A";ctx.strokeStyle=col+"2A";ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(-13,-32,26,58,3);ctx.fill();ctx.stroke();
+    for(var pi=0;pi<6;pi++){var px2=-9+pi*4,py2=-28+((t*40+pi*13)%54);ctx.beginPath();ctx.moveTo(px2,py2);ctx.lineTo(px2,py2+5);ctx.strokeStyle=col+Math.round((.35+.22*Math.sin(t*2+pi))*255).toString(16).padStart(2,"0");ctx.lineWidth=1;ctx.stroke();}
+    ctx.fillStyle="#EDE8F8";ctx.strokeStyle="rgba(180,160,220,.4)";ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(-30,-12,13,24,3);ctx.fill();ctx.stroke();
+  } else if(id===4){
+    ctx.fillStyle=col+"0E";ctx.strokeStyle=col+"66";ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(0,8,30,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.fillStyle=col+"18";ctx.strokeStyle=col+"33";ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,8,24,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.strokeStyle=col+"18";ctx.lineWidth=.5;
+    for(var dx=-20;dx<20;dx+=8){ctx.beginPath();ctx.moveTo(dx,-16);ctx.lineTo(dx,32);ctx.stroke();}
+    for(var dy=-16;dy<32;dy+=8){ctx.beginPath();ctx.moveTo(-20,dy);ctx.lineTo(20,dy);ctx.stroke();}
+    var np=3+3*Math.cos(t*.38),npy=8+7*Math.sin(t*.38)*.5;
+    ctx.strokeStyle="rgba(200,160,30,.75)";ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(np-9,npy-20);ctx.lineTo(np-1.5,npy);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(np+9,npy-20);ctx.lineTo(np+1.5,npy);ctx.stroke();
+    ctx.beginPath();ctx.arc(np,npy,2.5,0,Math.PI*2);ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=5;ctx.fill();ctx.shadowBlur=0;
+    ctx.fillStyle=col+"18";ctx.strokeStyle=col+"44";ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(-7,-36,14,28,2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(0,-36,7,0,Math.PI*2);ctx.fill();ctx.stroke();
+  } else if(id===5){
+    ctx.fillStyle=col+"0E";ctx.strokeStyle=col+"66";ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(-38,14,76,11,2);ctx.fill();ctx.stroke();
+    ctx.fillStyle=col+"1A";ctx.strokeStyle=col+"44";ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(-13,-3,26,14,2);ctx.fill();ctx.stroke();
+    var bg=ctx.createLinearGradient(13,4,50,4);bg.addColorStop(0,col+"CC");bg.addColorStop(1,col+"00");
+    ctx.beginPath();ctx.moveTo(13,4);ctx.lineTo(50,4);ctx.strokeStyle=bg;ctx.lineWidth=2;ctx.shadowColor=col;ctx.shadowBlur=5;ctx.stroke();ctx.shadowBlur=0;
+    var fp=(t*.38)%1,fpx=13+fp*37;ctx.beginPath();ctx.arc(fpx,4,2.8,0,Math.PI*2);ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=7;ctx.fill();ctx.shadowBlur=0;
+    ctx.fillStyle=col+"1A";ctx.strokeStyle=col+"44";ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(25,-10,17,20,2);ctx.fill();ctx.stroke();
+    var fo=1.4*Math.sin(t*.65);ctx.beginPath();ctx.moveTo(42,4+fo);ctx.bezierCurveTo(54,4,54,26,42,24);ctx.bezierCurveTo(28,22,8,34,-8,38);ctx.strokeStyle=col+"55";ctx.lineWidth=2.5;ctx.stroke();
+    ctx.fillStyle=col+"1A";ctx.strokeStyle=col+"33";ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(-26,34,9,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(-26,34,5,0,Math.PI*2);ctx.fill();ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ─── MOUSE ─── */
+function roomAt(x,y){return rooms.findIndex(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);}
+function workerAt(x,y){return workers.find(w=>Math.abs(w.cx-x)<12&&Math.abs(w.cy-y)<12);}
+function batchAt(x,y){return Object.values(batches).find(b=>b.orb&&b.alpha>0.1&&Math.abs(b.orb.x-x)<14&&Math.abs(b.orb.y-y)<14);}
+
+cv.addEventListener("mousemove",e=>{
+  var rect=cv.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  var rt=document.getElementById("rtip"),wt=document.getElementById("wtip"),bt=document.getElementById("btip");
+  [rt,wt,bt].forEach(el=>{el.classList.remove("show");});
+  var b=batchAt(mx,my),w=workerAt(mx,my),ri=roomAt(mx,my);
+  if(b){
+    bt.classList.add("show");
+    var sn=b.step<6?ROOMS[TUBE_ORDER[b.step]].name:"Complete";
+    bt.innerHTML=`<b style="color:${b.col}">${b.name}</b><br>Step ${b.step}/6 — ${sn}<br>ID #${b.id} · ${b.complete?"✅ Done":"In Progress"}`;
+    bt.style.left=(e.clientX+14)+"px";bt.style.top=(e.clientY-10)+"px";cv.style.cursor="pointer";
+  } else if(w){
+    wt.classList.add("show");
+    document.getElementById("wtr").textContent=ROOMS[w.rid].name+" — Worker "+(w.idx+1);
+    document.getElementById("wta").textContent=ROOMS[w.rid].workers[w.aIdx];
+    wt.style.left=(e.clientX+14)+"px";wt.style.top=(e.clientY-10)+"px";cv.style.cursor="help";
+  } else if(ri>=0){
+    rt.classList.add("show");
+    document.getElementById("rtn").textContent=ROOMS[ri].name;
+    document.getElementById("rtn").style.color=ROOMS[ri].col;
+    document.getElementById("rtd").textContent=ROOMS[ri].plain.slice(0,100)+"…";
+    rt.style.left=(e.clientX+14)+"px";rt.style.top=(e.clientY-10)+"px";cv.style.cursor="pointer";
+  } else cv.style.cursor="default";
+});
+cv.addEventListener("click",e=>{
+  var rect=cv.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  var b=batchAt(mx,my);if(b){selId=b.id;renderBar();return;}
+  var ri=roomAt(mx,my);if(ri>=0)openSB(ri);
+});
+cv.addEventListener("mouseleave",()=>["rtip","wtip","btip"].forEach(id=>document.getElementById(id).classList.remove("show")));
+
+/* ─── SIDEBAR ─── */
+function openSB(id){
+  openRm=id;var rm=ROOMS[id];
+  document.getElementById("sbtag").textContent="Step "+(id+1)+" of 6";
+  document.getElementById("sbtag").style.color=rm.col;document.getElementById("sbtag").style.borderColor=rm.col+"55";
+  document.getElementById("sbname").textContent=rm.name;document.getElementById("sbname").style.color=rm.col;
+  document.getElementById("sbsub").textContent=rm.sub;
+  document.getElementById("hcrumb").innerHTML=`<b>${rm.name}</b> — ${rm.sub}`;
+  var stats=rm.stats.map(s=>`<div class="sti"><div class="stk">${s.k}</div><div class="stv">${s.v}</div></div>`).join("");
+  var wl=rm.workers.map(a=>`<div class="wrow"><div class="wdot" style="background:${rm.col}"></div><div><div class="wname">Worker</div><div class="wact">${a}</div></div></div>`).join("");
+  document.getElementById("sbbody").innerHTML=`
+    <div class="sbsec"><div class="sblbl">Plain English</div><div class="sbpl">${rm.plain}</div></div>
+    <div class="sbsec"><div class="sblbl">The Science</div><div class="sbsc">${rm.sci}</div></div>
+    <div class="sbsec"><div class="sblbl">Key Numbers</div><div class="stg">${stats}</div></div>
+    <div class="sbsec"><div class="ff" style="border-color:${rm.col}">${rm.ff}</div></div>
+    <div class="sbsec"><div class="sblbl">Personnel</div>${wl}</div>`;
+  document.getElementById("sb").classList.add("open");syncCanvas();
+}
+function closeSB(){document.getElementById("sb").classList.remove("open");document.getElementById("hcrumb").innerHTML=`<b>Floor Plan</b> — Hover rooms &amp; workers · Click for info`;openRm=-1;syncCanvas();}
+
+/* ─── FUNCTIONS PANEL ─── */
+function toggleFn(){
+  var fp=document.getElementById("fnp"),btn=document.getElementById("fnBtn");
+  if(fp.classList.contains("open")){fp.classList.remove("open");btn.classList.remove("on");}
+  else{fp.classList.add("open");btn.classList.add("on");}
+  syncCanvas();
+}
+function closeFn(){document.getElementById("fnp").classList.remove("open");document.getElementById("fnBtn").classList.remove("on");syncCanvas();}
+function fnRes(id,html,err){var el=document.getElementById(id);el.classList.add("show");el.innerHTML=err?`<span style="color:#DC2626">${html}</span>`:html;}
+
+async function fnCreate(){
+  var n=document.getElementById("fn-cn").value.trim();
+  if(!n){fnRes("fn-cr","Name required",true);return;}
+  await createBatchByName(n);
+  fnRes("fn-cr",`<div class="fnrr"><span class="fnrk">status</span><span class="fnrv" style="color:#059669">Batch created ✓</span></div><div class="fnrr"><span class="fnrk">name</span><span class="fnrv">${n}</span></div>`);
+}
+async function fnAdv(){
+  var id=parseInt(document.getElementById("fn-ai").value);if(isNaN(id)){fnRes("fn-ar","Invalid ID",true);return;}
+  var b=batches[id];
+  if(b&&!b.complete){await advanceBatch(b);fnRes("fn-ar",`<div class="fnrr"><span class="fnrk">status</span><span class="fnrv" style="color:#059669">Advanced to step ${b.step} ✓</span></div>`);}
+  else if(provider&&contract){try{var tx=await contract.advanceBatch(id,{gasLimit:300000,gasPrice:ethers.utils.parseUnits("100","gwei")});await tx.wait();fnRes("fn-ar",`<div class="fnrr"><span class="fnrk">tx</span><span class="fnrv">${tx.hash.slice(0,16)}…</span></div>`);}catch(e){fnRes("fn-ar",e.reason||e.message,true);}}
+  else fnRes("fn-ar","Connect wallet or batch not found",true);
+}
+async function fnAbn(){
+  var id=parseInt(document.getElementById("fn-abi").value);if(isNaN(id)){fnRes("fn-abr","Invalid ID",true);return;}
+  if(batches[id]){batches[id].abandoned=true;batches[id].alpha=0;renderBar();buildDash();}
+  if(provider&&contract){try{var tx=await contract.abandonBatch(id,{gasLimit:300000,gasPrice:ethers.utils.parseUnits("100","gwei")});await tx.wait();fnRes("fn-abr",`<div class="fnrr"><span class="fnrk">status</span><span class="fnrv" style="color:#DC2626">Abandoned ✓</span></div>`);}catch(e){fnRes("fn-abr",e.reason||e.message,true);}}
+  else fnRes("fn-abr",`<div class="fnrr"><span class="fnrk">status</span><span class="fnrv" style="color:#DC2626">Marked abandoned (sim)</span></div>`);
+}
+async function fnNote(){
+  var id=parseInt(document.getElementById("fn-ni").value),step=parseInt(document.getElementById("fn-ns").value),note=document.getElementById("fn-nt").value.trim();
+  if(isNaN(id)||!note){fnRes("fn-nr","Fill all fields",true);return;}
+  if(provider&&contract){try{var tx=await contract.setStepNote(id,step,note,{gasLimit:300000,gasPrice:ethers.utils.parseUnits("100","gwei")});await tx.wait();fnRes("fn-nr",`<div class="fnrr"><span class="fnrk">status</span><span class="fnrv" style="color:#059669">Note set ✓</span></div>`);}catch(e){fnRes("fn-nr",e.reason||e.message,true);}}
+  else fnRes("fn-nr","Connect wallet to call this function",true);
+}
+async function fnGet(){
+  var id=parseInt(document.getElementById("fn-gi").value);if(isNaN(id)){fnRes("fn-gr","Invalid ID",true);return;}
+  var b=batches[id];
+  if(b)fnRes("fn-gr",`<div class="fnrr"><span class="fnrk">id</span><span class="fnrv">${b.id}</span></div><div class="fnrr"><span class="fnrk">name</span><span class="fnrv">${b.name}</span></div><div class="fnrr"><span class="fnrk">step</span><span class="fnrv">${b.step}/6</span></div><div class="fnrr"><span class="fnrk">complete</span><span class="fnrv">${b.complete}</span></div>`);
+  else if(provider&&contract){try{var r=await contract.getBatch(id);fnRes("fn-gr",`<div class="fnrr"><span class="fnrk">name</span><span class="fnrv">${r[1]}</span></div><div class="fnrr"><span class="fnrk">owner</span><span class="fnrv">${r[2].slice(0,12)}…</span></div><div class="fnrr"><span class="fnrk">step</span><span class="fnrv">${r[3]}/6</span></div><div class="fnrr"><span class="fnrk">complete</span><span class="fnrv">${r[6]}</span></div>`);}catch(e){fnRes("fn-gr",e.reason||e.message,true);}}
+  else fnRes("fn-gr","Connect wallet or create batch first",true);
+}
+async function fnOwner(){
+  var addr=document.getElementById("fn-oa").value.trim();
+  if(!addr&&signer)addr=await signer.getAddress();
+  if(!addr){fnRes("fn-or","Enter address or connect wallet",true);return;}
+  if(provider&&contract){try{var ids=await contract.getBatchesByOwner(addr);fnRes("fn-or",`<div class="fnrr"><span class="fnrk">count</span><span class="fnrv">${ids.length}</span></div><div class="fnrr"><span class="fnrk">ids</span><span class="fnrv">[${ids.map(i=>i.toString()).join(", ")}]</span></div>`);}catch(e){fnRes("fn-or",e.reason||e.message,true);}}
+  else fnRes("fn-or","Connect wallet to query",true);
+}
+async function fnCount(){
+  if(provider&&contract){try{var c=await contract.batchCount();fnRes("fn-ctr",`<div class="fnrr"><span class="fnrk">batchCount</span><span class="fnrv" style="color:#059669">${c.toString()}</span></div>`);}catch(e){fnRes("fn-ctr",e.reason||e.message,true);}}
+  else fnRes("fn-ctr",`<div class="fnrr"><span class="fnrk">simulated count</span><span class="fnrv">${bCount}</span></div>`);
+}
+async function fnTime(){
+  var id=parseInt(document.getElementById("fn-ti").value);if(isNaN(id)){fnRes("fn-tr","Invalid ID",true);return;}
+  var b=batches[id];
+  if(b){var s=Math.round((Date.now()-b.createdAt)/1000);fnRes("fn-tr",`<div class="fnrr"><span class="fnrk">seconds</span><span class="fnrv">${s}s</span></div><div class="fnrr"><span class="fnrk">human</span><span class="fnrv">${Math.floor(s/60)}m ${s%60}s</span></div>`);}
+  else if(provider&&contract){try{var sv=await contract.timeAtCurrentStep(id);fnRes("fn-tr",`<div class="fnrr"><span class="fnrk">seconds</span><span class="fnrv">${sv.toString()}</span></div>`);}catch(e){fnRes("fn-tr",e.reason||e.message,true);}}
+  else fnRes("fn-tr","Connect wallet or batch not found",true);
+}
+async function fnSteps(){
+  var id=parseInt(document.getElementById("fn-si").value);if(isNaN(id)){fnRes("fn-sr","Invalid ID",true);return;}
+  var sn=["Crystal","Wafering","Epitaxy","Litho","Test","Pigtail"];
+  if(provider&&contract){try{var res=await contract.getBatchSteps(id);var rows=sn.map((n,i)=>`<div class="fnrr"><span class="fnrk">${n}</span><span class="fnrv">${res[0][i].gt(0)?new Date(res[0][i]*1000).toLocaleTimeString():"—"}${res[1][i]?" · "+res[1][i]:""}</span></div>`).join("");fnRes("fn-sr",rows);}catch(e){fnRes("fn-sr",e.reason||e.message,true);}}
+  else fnRes("fn-sr","Connect wallet to query on-chain data",true);
+}
+
+/* ─── BATCHES ─── */
+async function createBatch(){
+  var inp=document.getElementById("bni");
+  await createBatchByName(inp.value.trim()||("BATCH-"+String(bCount+1).padStart(3,"0")));
+  inp.value="";
+}
+async function createBatchByName(name){
+  var id=bCount++,col=BCOLS[id%BCOLS.length];
+  var tf=stepFrac(0),pos=tubePos(tf);
+  batches[id]={id,name,step:0,col,complete:false,abandoned:false,
+    createdAt:Date.now(),alpha:1,
+    orb:{frac:tf,tfrac:tf,x:pos.x,y:pos.y}};
+  fStats.c0++;selId=id;
+  addFeed("🧪","Batch Created: "+name,"ID #"+id+" · Step 1: LEC Crystal Growth",col);
+  renderBar();buildDash();
+  if(provider&&contract){
+    showTx("createBatch(\""+name+"\")");
+    /* XRPL EVM: no eth_estimateGas — use fixed gas override */
+    var xrplGas={gasLimit:300000,gasPrice:ethers.utils.parseUnits("100","gwei")};
+    try{setTs(1,"active");setTs(1,"done");
+      setTs(2,"active");var tx=await contract.createBatch(name,xrplGas);
+      addFeed("📡","broadcast",tx.hash.slice(0,14)+"…","#0EA5E9");
+      setTs(2,"done");setTs(3,"active");await tx.wait();
+      setTs(3,"done");setTs(4,"active");await dl(400);setTs(4,"done");
+      addFeed("✅","Batch on-chain","XRPL EVM confirmed",col);
+    }catch(e){setTs(2,"fail");addFeed("⚠","createBatch failed",e.reason||e.message,"#DC2626");}
+    setTimeout(hideTx,1800);
+  }
+}
+async function advanceBatch(b){
+  if(!b||b.complete||b.abandoned)return;
+  var from=b.step; b.step++;
+  fStats["c"+Math.min(b.step,5)]++;
+  b.orb.tfrac=stepFrac(b.step);
+  if(b.step>=6){
+    b.complete=true;b.fadeTimer=undefined; /* will be set on first draw after completion */
+    addFeed("🏆","Batch "+b.name+" COMPLETE","Full pipeline in "+Math.round((Date.now()-b.createdAt)/1000)+"s",b.col);
+  } else {
+    addFeed("⚙","Advance: "+b.name,"→ "+ROOMS[TUBE_ORDER[b.step]].name,b.col);
+  }
+  renderBar();buildDash();
+  if(provider&&contract){
+    showTx("advanceBatch("+b.id+")");
+    var xrplGas={gasLimit:300000,gasPrice:ethers.utils.parseUnits("100","gwei")};
+    try{setTs(1,"active");setTs(1,"done");
+      setTs(2,"active");var tx=await contract.advanceBatch(b.id,xrplGas);
+      setTs(2,"done");setTs(3,"active");await tx.wait();
+      setTs(3,"done");setTs(4,"active");await dl(400);setTs(4,"done");
+      addFeed("✅","advanceBatch confirmed","XRPL EVM",b.col);
+    }catch(e){setTs(2,"fail");addFeed("⚠","advanceBatch failed",e.reason||e.message,"#DC2626");}
+    setTimeout(hideTx,1800);
+  }
+}
+function advSel(){var b=batches[selId];if(b&&!b.complete&&!b.abandoned)advanceBatch(b);}
+function togglePlay(){
+  if(autoPlay){autoPlay=false;clearInterval(autoTmr);autoTmr=null;
+    document.getElementById("playBtn").textContent="▶ Auto";document.getElementById("playBtn").className="bbtn play";
+  } else {
+    var b=batches[selId];if(!b||b.complete||b.abandoned)return;
+    autoPlay=true;document.getElementById("playBtn").textContent="⏹ Stop";document.getElementById("playBtn").className="bbtn stop";
+    autoTmr=setInterval(()=>{
+      var b2=batches[selId];
+      if(!b2||b2.complete||b2.abandoned){autoPlay=false;clearInterval(autoTmr);autoTmr=null;
+        document.getElementById("playBtn").textContent="▶ Auto";document.getElementById("playBtn").className="bbtn play";return;}
+      advanceBatch(b2);
+    },3200);
+  }
+}
+function renderBar(){
+  var el=document.getElementById("chips"),arr=Object.values(batches).filter(b=>!b.abandoned);
+  if(!arr.length){el.innerHTML=`<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx4)">No batches yet</span>`;
+    document.getElementById("advBtn").style.display="none";document.getElementById("playBtn").style.display="none";return;}
+  /* show active batches in chips; completed ones fade from bar too */
+  el.innerHTML=arr.map(b=>`<div class="chip ${b.id===selId?"sel":""}" onclick="selBatch(${b.id})">
+    <div class="chip-dot" style="background:${b.col}"></div>
+    <div class="chip-name">${b.name}</div>
+    <div class="chip-step">${b.complete?"✅":("step "+b.step+"/6")}</div>
+  </div>`).join("");
+  var sel=selId!==null?batches[selId]:null,show=sel&&!sel.complete&&!sel.abandoned;
+  document.getElementById("advBtn").style.display=show?"":"none";
+  document.getElementById("playBtn").style.display=show?"":"none";
+}
+function selBatch(id){selId=id;renderBar();}
+
+/* ─── TX ─── */
+function showTx(l){document.getElementById("txovt").textContent=l;document.getElementById("txov").classList.add("show");[1,2,3,4].forEach(i=>setTs(i,""));}
+function hideTx(){document.getElementById("txov").classList.remove("show");}
+function setTs(i,s){var e=document.getElementById("tx"+i);e.className="txst"+(s?" "+s:"");}
+function dl(ms){return new Promise(r=>setTimeout(r,ms));}
+
+/* ─── DASHBOARD ─── */
+function buildDash(){
+  var arr=Object.values(batches),sn=["Crystal","Wafer","Epitaxy","Litho","Test","Pigtail"];
+  var bc=document.getElementById("bcards");
+  bc.innerHTML=!arr.length?`<div style="background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:22px;text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:var(--tx4)">No batches yet — create one to begin</div>`:
+    arr.map(b=>{
+      var badge=b.abandoned?'<span class="bcbadge abn">Abandoned</span>':b.complete?'<span class="bcbadge done">Complete ✓</span>':'<span class="bcbadge act">Active</span>';
+      var steps=ROOMS.map((rm,i)=>`<div class="bcstep ${i<b.step?"done":i===b.step&&!b.complete?"cur":""}" style="color:${rm.col}"><div class="bcnode">${i<b.step?"✓":i+1}</div><div class="bcstep-n">${sn[i]}</div></div>`).join("");
+      return`<div class="bcard"><div class="bctop"><div class="bcdot" style="background:${b.col}"></div><div class="bcname">${b.name}</div><div class="bcid">#${b.id}</div>${badge}</div><div class="bcsteps">${steps}</div><div class="bcmeta"><div class="bcmi">Step: <b>${b.step}/6</b></div><div class="bcmi">Time: <b>${Math.round((Date.now()-b.createdAt)/1000)}s</b></div></div></div>`;
+    }).join("");
+  var mv=Math.max(1,...FDATA.map(f=>fStats[f.key]));
+  document.getElementById("dfnl").innerHTML=FDATA.map(f=>{var v=fStats[f.key],p=(v/mv)*100;
+    return`<div class="dfc" style="border-top:2.5px solid ${f.col}"><div class="dfctt">${f.tip}</div><div class="dfcl">${f.k}</div><div class="dfcv">${v}</div><div class="dfcu">${f.u}</div><div class="dfcbar"><div class="dfcfill" style="width:${p}%;background:${f.col}"></div></div></div>`;}).join("");
+}
+function addFeed(ic,title,sub,col){
+  var fl=document.getElementById("flist");
+  if(fl.querySelector("[style*='No events']"))fl.innerHTML="";
+  var d=document.createElement("div");d.className="fi";
+  d.innerHTML=`<div class="fiic">${ic}</div><div class="fib"><div class="fit" style="color:${col||"var(--tx)"}">${title}</div><div class="fis">${sub}</div></div><div class="fitm">${new Date().toLocaleTimeString()}</div>`;
+  fl.insertBefore(d,fl.firstChild);
+}
+function openDash(){buildDash();document.getElementById("dash").classList.add("show");document.getElementById("dashBtn").classList.add("on");}
+function closeDash(){document.getElementById("dash").classList.remove("show");document.getElementById("dashBtn").classList.remove("on");}
+
+/* ─── WALLET ─── */
+async function connectWallet(){
+  if(!window.ethereum){alert("MetaMask not found");return;}
+  var btn=document.getElementById("cbtn");btn.textContent="Connecting…";btn.disabled=true;
+  try{
+    provider=new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts",[]);signer=provider.getSigner();
+    contract=new ethers.Contract(CONTRACT,ABI,signer);
+    var addr=await signer.getAddress();
+    document.getElementById("waddr").textContent=addr.slice(0,6)+"…"+addr.slice(-4);
+    btn.textContent="Connected";btn.classList.add("on");btn.disabled=false;
+    addFeed("🔗","Wallet Connected",addr,"#0EA5E9");
+    window.ethereum.on("accountsChanged",connectWallet);
+    window.ethereum.on("chainChanged",()=>location.reload());
+  }catch(e){btn.textContent="Connect Wallet";btn.disabled=false;}
+}
+document.getElementById("cbtn").onclick=connectWallet;
+document.addEventListener("keydown",e=>{
+  if(e.key==="Tab"){e.preventDefault();var d=document.getElementById("dash");d.classList.contains("show")?closeDash():openDash();}
+  if(e.key==="Escape"){closeSB();closeFn();closeDash();}
+  if(e.key==="Enter"&&document.activeElement===document.getElementById("bni"))createBatch();
+});
+
+/* ─── LOOP ─── */
+function loop(ts){
+  AT=ts*.001;
+  syncCanvas();
+  draw(AT);
+  requestAnimationFrame(loop);
+}
+window.addEventListener("resize",syncCanvas);
+syncCanvas();buildDash();
+requestAnimationFrame(loop);
+setTimeout(()=>addFeed("⬡","COHR Lab Ready","Sherman TX · XRPL EVM Chain 1449000","#1A56DB"),500);
+</script>
+</body>
+</html>

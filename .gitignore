@@ -1,0 +1,16 @@
+# Foundry
+out/
+cache/
+broadcast/
+
+# Environment
+.env
+
+# Node (if any tooling added)
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+.vercel
