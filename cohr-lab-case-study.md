@@ -1,4 +1,4 @@
-# CASE STUDY · FULL-STACK WEB3 DAPP
+# 🧬 CASE STUDY · FULL-STACK WEB3 DAPP
 
 # COHR LAB
 
@@ -654,7 +654,7 @@ This makes it a strong demonstration of both **Solidity engineering discipline**
 
 ## Live Links
 
-- **App:** https://cohrlab.surge.sh
+- **App:** https://cohr-lab.vercel.app/
 - **Contract:** `0x870201041262975C5b40941e1fE85792Fb2dfF3D`
 
 ---
