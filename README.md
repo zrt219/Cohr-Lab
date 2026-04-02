@@ -1,7 +1,7 @@
 # 🧬 COHR LAB Command Center
-<img width="1536" height="446" alt="COHR LAB Banner" src="https://via.placeholder.com/1536x446?text=COHR+LAB" />
+<img width="1773" height="886" alt="ChatGPT Image Apr 2, 2026, 05_00_15 AM" src="https://github.com/user-attachments/assets/9cb5100c-b6cf-4cbd-ad03-40f469eba24b" />
 
-> Real-time semiconductor fabrication lifecycle system built on the **XRPL EVM Sidechain Testnet**.
+>Real-time semiconductor fabrication lifecycle system built on the **XRPL EVM Sidechain Testnet**.
 > A fully deployed Solidity contract powering a live Web3 state machine — no backend, no server, one frontend execution layer.
 
 ![XRPL EVM](https://img.shields.io/badge/XRPL%20EVM-Testnet%201449000-00FFB8?style=flat-square)
@@ -17,6 +17,10 @@
 
 **Contract on Explorer →** https://explorer.testnet.xrplevm.org/address/0x870201041262975C5b40941e1fE85792Fb2dfF3D
 
+https://github.com/user-attachments/assets/409ba288-34fd-4486-89ae-a679c88cd821
+
+
+>COHR Lab Simulator — a system-level interface for modeling event-driven workflows that trigger programmable on-chain value routing (USDC/XRP) across coordinated execution stages.
 ---
 
 ## What This Is
@@ -74,6 +78,18 @@ UI
 - ✅ Event-driven audit reconstruction
 
 ---
+
+## ⚡ Live Execution
+
+![ScreenRecorderProject62](https://github.com/user-attachments/assets/369076ea-4544-4315-8327-6793dc0d39e3)
+
+![ScreenRecorderProject61](https://github.com/user-attachments/assets/027d8081-89a3-4a83-8bc1-eb57e0dc7f1a)
+
+![ScreenRecorderProject63](https://github.com/user-attachments/assets/4afc0ee7-6450-47d8-bd6c-3e3b97078716)
+
+https://github.com/user-attachments/assets/51be3cc9-0983-4e9b-bd69-d853ed7afe50
+
+
 
 ## On-Chain Command Execution
 
@@ -193,6 +209,8 @@ forge script script/Deploy.s.sol:DeployCohrLab --rpc-url https://rpc.testnet.xrp
 ```
 
 ---
+
+<img width="1773" height="886" alt="ChatGPT Image Apr 2, 2026, 05_04_18 AM" src="https://github.com/user-attachments/assets/41add8a4-7e9e-4013-88db-f842e3b62087" />
 
 ## On-Chain Systems Portfolio
 
