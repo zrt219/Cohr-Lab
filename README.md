@@ -1,5 +1,5 @@
 # 🧬 COHR LAB Command Center
-<img width="1773" height="886" alt="ChatGPT Image Apr 2, 2026, 05_00_15 AM" src="https://github.com/user-attachments/assets/9cb5100c-b6cf-4cbd-ad03-40f469eba24b" />
+<img width="1531" height="684" alt="ChatGPT Image Apr 2, 2026, 05_52_12 AM" src="https://github.com/user-attachments/assets/5bd792f2-29e5-46b4-9f4a-7ab3d7702685" />
 
 >Deterministic on-chain lifecycle engine modeling semiconductor fabrication — executed entirely through direct contract interaction (no backend layer) built on the **XRPL EVM Sidechain Testnet**.
 > A fully deployed Solidity contract powering a live Web3 state machine — no backend, no server, one frontend execution layer.
@@ -84,7 +84,77 @@ UI
 
 ---
 
-### Lifecycle System
+## 🔐 Execution Guarantees
+
+COHR enforces strict invariants at the contract level:
+
+- ✅ A batch can only move forward (no rollback)
+- ✅ Only the owner can mutate state
+- ✅ Each stage is executed exactly once
+- ✅ Terminal states are irreversible
+- ✅ Full lifecycle can be reconstructed from events alone
+
+> This ensures deterministic, audit-safe execution under all conditions
+
+---
+
+## ⚠️ Failure Modes & Constraints
+
+- ❌ Incorrect gas overrides will cause transaction failure (XRPL EVM limitation)
+- ❌ Users must manually confirm every transaction (no relayer layer)
+- ❌ No batching — each lifecycle step is a discrete transaction
+- ❌ UI does not cache state — all reads come directly from chain
+- ❌ Network instability directly impacts execution and UX
+- ❌ Frontend dependency — no fallback execution path without UI
+
+### Mitigations
+
+- ✅ Explicit gas configuration enforced in all write calls
+- ✅ Idempotent contract design (no duplicate state transitions)
+- ✅ Event-driven UI reconstruction (stateless frontend)
+- ✅ Clear lifecycle boundaries reduce invalid transitions
+
+---
+
+## 🔒 Security Considerations
+
+- ✅ No external contract calls → eliminates reentrancy risk
+- ✅ Strict ownership enforcement on all state mutations
+- ✅ Bounded state machine → prevents invalid stage transitions
+- ✅ No dynamic execution paths → predictable behavior
+- ✅ Immutable deployment → no upgrade attack surface
+
+### Known Limitations
+
+- ❌ No pausable mechanism (cannot halt contract)
+- ❌ No emergency admin override
+- ❌ No upgrade proxy (logic cannot be modified post-deploy)
+
+> Designed for deterministic execution over administrative control
+
+---
+
+## ⛽ Gas & Performance
+
+### Execution Costs (Approximate)
+
+- ✅ createBatch → ~120k gas
+- ✅ advanceBatch → ~80k gas
+- ✅ setStepNote → ~60k gas
+
+### Optimization Characteristics
+
+- ✅ Fixed-size arrays reduce dynamic storage overhead
+- ✅ uint8 stage encoding minimizes storage footprint
+- ✅ No external calls → consistent gas profile
+- ✅ Linear lifecycle progression → predictable execution cost
+- ✅ No complex loops → bounded computation
+
+> Designed for predictable, stable execution per lifecycle step
+
+---
+
+## Lifecycle System
 
 - ✅ Crystal → Wafer → Epitaxy → Lithography → Testing → Pigtail
 - ✅ Per-stage timestamps stored on-chain
@@ -178,13 +248,51 @@ cohr-lab/
 
 ---
 
-## Running Locally
+## 🧪 Local Execution
+
+COHR LAB is a **stateless frontend** that interacts directly with a deployed smart contract — no backend required.
 
 ```bash
 git clone https://github.com/zrt219/cohr-lab
 cd cohr-lab
-open index.html
+npx serve .
 ```
+
+Open: http://localhost:3000
+
+---
+
+### 🦊 MetaMask (XRPL EVM Testnet)
+
+| Field | Value |
+|------|------|
+| RPC | https://rpc.testnet.xrplevm.org |
+| Chain ID | 1449000 |
+| Symbol | XRP |
+
+---
+
+### ⚠️ Gas Override (Required)
+
+```js
+const overrides = {
+  gasLimit: 300000,
+  gasPrice: ethers.utils.parseUnits("100", "gwei"),
+  type: 0
+};
+```
+
+---
+
+## 🚀 Deploy (Vercel)
+
+- Import repo into Vercel  
+- Framework: **Other**  
+- Build: **none**  
+- Output: `./`  
+
+> Static deployment — UI connects directly to XRPL EVM
+
 
 ---
 
